@@ -1,51 +1,64 @@
-# Copyright (c) Streamlit Inc. (2018-2022) Snowflake Inc. (2022)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import streamlit as st
-from streamlit.logger import get_logger
+from PIL import Image
+import math
+#
+#
+#
+st.set_page_config(
+    page_title="GPT4V Cost Computation",
+    page_icon="👋",
+)
+#
+#
+#
+def round_up(numerator, denominator):
+  return math.ceil(numerator/denominator)
+#
+#
+#
+def compute_tokens(image,level):
+  image=Image.open(image)
+  width, height = image.size
+  st.image(uploaded_file, caption=f'Uploaded Image: {width}x{height}')
+  if(level=="low"):
+    return 85
+  else:
+    max_size=max(width,height)
+    if(max_size>2048):
+      new_width=round(width*2048/max_size)
+      new_height=round(height*2048/max_size)
+      image2=image.resize((new_width,new_height))
+      st.image(image2, caption=f'MAX 2048: Image resized. {width}x{height}')
+    else:
+      image2=image
+      st.image(image2, caption=f'MAX 2048: Image not resized. {width}x{height}')
+    width, height = image2.size
+    min_size=min(width,height)
+    if(min_size>768):
+      new_width=round(width*768/min_size)
+      new_height=round(height*768/min_size)
+      image3=image2.resize((new_width,new_height))
+      st.image(image3, caption=f'MIN 768: Image resized. {new_width}x{new_height}')
+    else:
+      image3=image2
+      st.image(image3, caption=f'MIN 768: Image not resized. {width}x{height}')
+    width, height = image2.size
+    squares=round_up(width,512)*round_up(height,512)
+    tokens=squares*170+85
+    return tokens
+#
+#
+#
+level=st.sidebar.select_slider("## Select detail level",["low","high"])
 
-LOGGER = get_logger(__name__)
-
-
-def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
-    )
-
-    st.write("# Welcome to Streamlit! 👋")
-
-    st.sidebar.success("Select a demo above.")
-
-    st.markdown(
-        """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
-        **👈 Select a demo from the sidebar** to see some examples
-        of what Streamlit can do!
-        ### Want to learn more?
-        - Check out [streamlit.io](https://streamlit.io)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
-        ### See more complex demos
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
-    """
-    )
-
-
-if __name__ == "__main__":
-    run()
+uploaded_file = st.file_uploader("Upload your image file", type=["png", "jpg", "jpeg"])
+final_answer=st.empty()
+if uploaded_file is not None:
+  #st.image(uploaded_file, caption='Uploaded Image.')
+  tokens=compute_tokens(uploaded_file,level)
+  final_answer.markdown(f"## Tokens: {tokens}")
+else:
+  st.write("Please upload an image file")
+#
+#
+#
